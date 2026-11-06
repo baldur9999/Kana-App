@@ -3,6 +3,6 @@
 "short_name": "Kana",
 "start_url": "./index.html",
 "display": "standalone",
-"background_color": "#ffffff"
+"background_color": "#ffffff",
 "theme_color": "#000000"
 }
