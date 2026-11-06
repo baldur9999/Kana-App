@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hiragana & Katakana N5 Trainer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .perspective { perspective: 1000px; }
+        .transform-style { transform-style: preserve-style; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md py-4 px-6 flex justify-between items-center">
+        <h1 class="text-xl font-bold tracking-wide">🎌 KanaMaster N5</h1>
+        <div class="flex gap-4 text-sm font-medium">
+            <span id="streakBadge" class="bg-indigo-700 px-3 py-1 rounded-full">🔥 Streak: 0</span>
+            <span id="xpBadge" class="bg-indigo-700 px-3 py-1 rounded-full">⭐ XP: 0</span>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 flex justify-around shadow-sm">
+        <button onclick="switchTab('flashcards')" id="btn-flashcards" class="flex-1 py-3 text-center font-semibold text-indigo-600 border-b-2 border-indigo-600 transition">Lernkarten</button>
+        <button onclick="switchTab('quiz')" id="btn-quiz" class="flex-1 py-3 text-center font-semibold text-slate-500 border-b-2 border-transparent transition">Lese-Quiz</button>
+        <button onclick="switchTab('writing')" id="btn-writing" class="flex-1 py-3 text-center font-semibold text-slate-500 border-b-2 border-transparent transition">Schreib-/Eingabe</button>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-xl w-full mx-auto p-4 flex flex-col justify-center">
+
+        <!-- TAB 1: FLASHCARDS -->
+        <section id="tab-flashcards" class="space-y-6">
+            <div class="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm">
+                <label class="text-sm font-medium text-slate-600">Kategorie:</label>
+                <select id="categorySelect" onchange="resetFlashcards()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="hiragana-basic">Hiragana (Basis)</option>
+                    <option value="hiragana-dakuon">Hiragana (Dakuon/Handakuon)</option>
+                    <option value="katakana-basic">Katakana (Basis)</option>
+                    <option value="katakana-dakuon">Katakana (Dakuon/Handakuon)</option>
+                </select>
+            </div>
+
+            <!-- Flashcard -->
+            <div onclick="flipCard()" class="perspective w-full h-64 cursor-pointer">
+                <div id="cardInner" class="relative w-full h-full duration-350 transform-style transition-transform shadow-lg rounded-2xl bg-white border border-slate-100 flex flex-col items-center justify-center p-6 select-none">
+                    <!-- Vorderseite -->
+                    <div id="cardFront" class="absolute inset-0 flex flex-col items-center justify-center backface-hidden">
+                        <span id="cardKana" class="text-7xl font-bold text-slate-800 mb-2">あ</span>
+                        <span class="text-xs text-slate-400 uppercase tracking-wider">Tippen zum Umdrehen</span>
+                    </div>
+                    <!-- Rückseite -->
+                    <div id="cardBack" class="absolute inset-0 flex flex-col items-center justify-center backface-hidden rotate-y-180 bg-indigo-50 rounded-2xl">
+                        <span id="cardRomaji" class="text-4xl font-extrabold text-indigo-600 mb-2">a</span>
+                        <span id="cardHint" class="text-sm text-slate-500">Reihe: A-Reihe</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="playAudio()" class="flex-1 bg-white border border-slate-300 hover:bg-slate-100 py-3 rounded-xl font-medium shadow-sm transition">🔊 Aussprache</button>
+                <button onclick="nextCard()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-medium shadow-md transition">Nächste Karte ➔</button>
+            </div>
+        </section>
+
+        <!-- TAB 2: QUIZ -->
+        <section id="tab-quiz" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center space-y-4">
+                <span class="text-xs uppercase tracking-wider bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-semibold">N5 Leseaufgabe</span>
+                <div id="quizQuestion" class="text-6xl font-bold text-slate-800 my-4">ねこ</div>
+                <p class="text-sm text-slate-500">Welche Bedeutung oder Romaji gehört dazu?</p>
+                
+                <div id="quizOptions" class="grid grid-cols-2 gap-3 mt-4">
+                    <!-- Options injected via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: WRITING / TYPING -->
+        <section id="tab-writing" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 text-center space-y-4">
+                <span class="text-xs uppercase tracking-wider bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-semibold">Tipp- & Schreibtraining</span>
+                <p class="text-sm text-slate-600">Schreibe das Romaji für folgendes Zeichen:</p>
+                <div id="writePromptKana" class="text-7xl font-bold text-slate-800 my-2">す</div>
+                
+                <form onsubmit="checkTyping(event)" class="flex gap-2 mt-4">
+                    <input type="text" id="typingInput" placeholder="Romaji eingeben (z.B. su)..." autocomplete="off" class="flex-1 border border-slate-300 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 rounded-xl font-medium shadow-md transition">Prüfen</button>
+                </form>
+                <div id="typingFeedback" class="text-sm font-medium h-6"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Data Sets
+        const kanaData = {
+            "hiragana-basic": [
+                {k: "あ", r: "a", h: "A-Reihe"}, {k: "い", r: "i", h: "A-Reihe"}, {k: "う", r: "u", h: "A-Reihe"}, {k: "え", r: "e", h: "A-Reihe"}, {k: "お", r: "o", h: "A-Reihe"},
+                {k: "か", r: "ka", h: "K-Reihe"}, {k: "き", r: "ki", h: "K-Reihe"}, {k: "く", r: "ku", h: "K-Reihe"}, {k: "け", r: "ke", h: "K-Reihe"}, {k: "こ", r: "ko", h: "K-Reihe"},
+                {k: "さ", r: "sa", h: "S-Reihe"}, {k: "し", r: "shi", h: "S-Reihe"}, {k: "す", r: "su", h: "S-Reihe"}, {k: "せ", r: "se", h: "S-Reihe"}, {k: "そ", r: "so", h: "S-Reihe"},
+                {k: "た", r: "ta", h: "T-Reihe"}, {k: "ち", r: "chi", h: "T-Reihe"}, {k: "つ", r: "tsu", h: "T-Reihe"}, {k: "て", r: "te", h: "T-Reihe"}, {k: "と", r: "to", h: "T-Reihe"},
+                {k: "な", r: "na", h: "N-Reihe"}, {k: "に", r: "ni", h: "N-Reihe"}, {k: "ぬ", r: "nu", h: "N-Reihe"}, {k: "ね", r: "ne", h: "N-Reihe"}, {k: "の", r: "no", h: "N-Reihe"},
+                {k: "は", r: "ha", h: "H-Reihe"}, {k: "ひ", r: "hi", h: "H-Reihe"}, {k: "ふ", r: "fu", h: "H-Reihe"}, {k: "へ", r: "he", h: "H-Reihe"}, {k: "ほ", r: "ho", h: "H-Reihe"},
+                {k: "ま", r: "ma", h: "M-Reihe"}, {k: "み", r: "mi", h: "M-Reihe"}, {k: "む", r: "mu", h: "M-Reihe"}, {k: "め", r: "me", h: "M-Reihe"}, {k: "も", r: "mo", h: "M-Reihe"},
+                {k: "や", r: "ya", h: "Y-Reihe"}, {k: "ゆ", r: "yu", h: "Y-Reihe"}, {k: "よ", r: "yo", h: "Y-Reihe"},
+                {k: "ら", r: "ra", h: "R-Reihe"}, {k: "り", r: "ri", h: "R-Reihe"}, {k: "る", r: "ru", h: "R-Reihe"}, {k: "れ", r: "re", h: "R-Reihe"}, {k: "ろ", r: "ro", h: "R-Reihe"},
+                {k: "わ", r: "wa", h: "W-Reihe"}, {k: "を", r: "wo", h: "W-Reihe"}, {k: "ん", r: "n", h: "Spezial"}
+            ],
+            "hiragana-dakuon": [
+                {k: "が", r: "ga", h: "G-Reihe (Dakuon)"}, {k: "ぎ", r: "gi", h: "G-Reihe (Dakuon)"}, {k: "ぐ", r: "gu", h: "G-Reihe (Dakuon)"}, {k: "げ", r: "ge", h: "G-Reihe (Dakuon)"}, {k: "ご", r: "go", h: "G-Reihe (Dakuon)"},
+                {k: "ざ", r: "za", h: "Z-Reihe (Dakuon)"}, {k: "じ", r: "ji", h: "Z-Reihe (Dakuon)"}, {k: "ず", r: "zu", h: "Z-Reihe (Dakuon)"}, {k: "ぜ", r: "ze", h: "Z-Reihe (Dakuon)"}, {k: "ぞ", r: "zo", h: "Z-Reihe (Dakuon)"},
+                {k: "だ", r: "da", h: "D-Reihe (Dakuon)"}, {k: "ぢ", r: "ji", h: "D-Reihe (Dakuon)"}, {k: "づ", r: "zu", h: "D-Reihe (Dakuon)"}, {k: "で", r: "de", h: "D-Reihe (Dakuon)"}, {k: "ど", r: "do", h: "D-Reihe (Dakuon)"},
+                {k: "ば", r: "ba", h: "B-Reihe (Dakuon)"}, {k: "び", r: "bi", h: "B-Reihe (Dakuon)"}, {k: "ぶ", r: "bu", h: "B-Reihe (Dakuon)"}, {k: "べ", r: "be", h: "B-Reihe (Dakuon)"}, {k: "ぼ", r: "bo", h: "B-Reihe (Dakuon)"},
+                {k: "ぱ", r: "pa", h: "P-Reihe (Handakuon)"}, {k: "ぴ", r: "pi", h: "P-Reihe (Handakuon)"}, {k: "ぷ", r: "pu", h: "P-Reihe (Handakuon)"}, {k: "ぺ", r: "pe", h: "P-Reihe (Handakuon)"}, {k: "ぽ", r: "po", h: "P-Reihe (Handakuon)"}
+            ],
+            "katakana-basic": [
+                {k: "ア", r: "a", h: "A-Reihe"}, {k: "イ", r: "i", h: "A-Reihe"}, {k: "ウ", r: "u", h: "A-Reihe"}, {k: "エ", r: "e", h: "A-Reihe"}, {k: "オ", r: "o", h: "A-Reihe"},
+                {k: "カ", r: "ka", h: "K-Reihe"}, {k: "キ", r: "ki", h: "K-Reihe"}, {k: "ク", r: "ku", h: "K-Reihe"}, {k: "ケ", r: "ke", h: "K-Reihe"}, {k: "コ", r: "ko", h: "K-Reihe"}
+            ],
+            "katakana-dakuon": [
+                {k: "ガ", r: "ga", h: "G-Reihe"}, {k: "ギ", r: "gi", h: "G-Reihe"}, {k: "グ", r: "gu", h: "G-Reihe"}, {k: "ゲ", r: "ge", h: "G-Reihe"}, {k: "ゴ", r: "go", h: "G-Reihe"}
+            ]
+        };
+
+        const n5Words = [
+            {w: "ねこ", meaning: "Katze"}, {w: "いぬ", meaning: "Hund"}, {w: "すし", meaning: "Sushi"},
+            {w: "みず", meaning: "Wasser"}, {w: "1日", meaning: "Tag / 1. Tag"}, {w: "たべる", meaning: "essen"},
+            {w: "すーフ", meaning: "Suppe"}, {w: "ぞう", meaning: "Elefant"}, {w: "りんご", meaning: "Apfel"}
+        ];
+
+        let state = {
+            streak: parseInt(localStorage.getItem('n5_streak')) || 0,
+            xp: parseInt(localStorage.getItem('n5_xp')) || 0,
+            currentCardIndex: 0,
+            isFlipped: false,
+            currentQuizItem: null,
+            currentWriteItem: null
+        };
+
+        function updateStatsUI() {
+            document.getElementById('streakBadge').innerText = `🔥 Streak: ${state.streak}`;
+            document.getElementById('xpBadge').innerText = `⭐ XP: ${state.xp}`;
+            localStorage.setItem('n5_streak', state.streak);
+            localStorage.setItem('n5_xp', state.xp);
+        }
+
+        function switchTab(tabId) {
+            ['flashcards', 'quiz', 'writing'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`btn-${t}`).classList.remove('text-indigo-600', 'border-indigo-600');
+                document.getElementById(`btn-${t}`).classList.add('text-slate-500', 'border-transparent');
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`btn-${tabId}`).classList.add('text-indigo-600', 'border-indigo-600');
+            document.getElementById(`btn-${tabId}`).classList.remove('text-slate-500', 'border-transparent');
+
+            if(tabId === 'quiz') loadQuiz();
+            if(tabId === 'writing') loadWriting();
+        }
+
+        // Flashcard Logic
+        function getActiveList() {
+            const cat = document.getElementById('categorySelect').value;
+            return kanaData[cat] || kanaData["hiragana-basic"];
+        }
+
+        function resetFlashcards() {
+            state.currentCardIndex = 0;
+            state.isFlipped = false;
+            document.getElementById('cardInner').style.transform = '';
+            renderCard();
+        }
+
+        function renderCard() {
+            const list = getActiveList();
+            const item = list[state.currentCardIndex];
+            document.getElementById('cardKana').innerText = item.k;
+            document.getElementById('cardRomaji').innerText = item.r;
+            document.getElementById('cardHint').innerText = item.h;
+        }
+
+        function flipCard() {
+            state.isFlipped = !state.isFlipped;
+            const inner = document.getElementById('cardInner');
+            inner.style.transform = state.isFlipped ? 'rotateY(180deg)' : '';
+        }
+
+        function nextCard() {
+            state.isFlipped = false;
+            document.getElementById('cardInner').style.transform = '';
+            const list = getActiveList();
+            state.currentCardIndex = (state.currentCardIndex + 1) % list.length;
+            setTimeout(renderCard, 150);
+            state.xp += 2;
+            updateStatsUI();
+        }
+
+        function playAudio() {
+            const list = getActiveList();
+            const item = list[state.currentCardIndex];
+            const utterance = new SpeechSynthesisUtterance(item.k);
+            utterance.lang = 'ja-JP';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Quiz Logic
+        function loadQuiz() {
+            const allKana = kanaData["hiragana-basic"];
+            const current = allKana[Math.floor(Math.random() * allKana.length)];
+            state.currentQuizItem = current;
+
+            document.getElementById('quizQuestion').innerText = current.k;
+
+            // Generate wrong options
+            let options = [current.r];
+            while(options.length < 4) {
+                let rand = allKana[Math.floor(Math.random() * allKana.length)].r;
+                if(!options.includes(rand)) options.push(rand);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('quizOptions');
+            container.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'p-4 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 font-bold text-lg rounded-xl transition border border-slate-200';
+                btn.innerText = opt;
+                btn.onclick = () => checkQuiz(opt);
+                container.appendChild(btn);
+            });
+        }
+
+        function checkQuiz(selected) {
+            if(selected === state.currentQuizItem.r) {
+                state.streak++;
+                state.xp += 10;
+                alert('Richtig! 🎉');
+            } else {
+                state.streak = 0;
+                alert(`Falsch. Richtig wäre "${state.currentQuizItem.r}" gewesen.`);
+            }
+            updateStatsUI();
+            loadQuiz();
+        }
+
+        // Writing Logic
+        function loadWriting() {
+            const list = kanaData["hiragana-basic"];
+            state.currentWriteItem = list[Math.floor(Math.random() * list.length)];
+            document.getElementById('writePromptKana').innerText = state.currentWriteItem.k;
+            document.getElementById('typingInput').value = '';
+            document.getElementById('typingFeedback').innerText = '';
+        }
+
+        function checkTyping(e) {
+            e.preventDefault();
+            const val = document.getElementById('typingInput').value.trim().toLowerCase();
+            const feedback = document.getElementById('typingFeedback');
+            
+            if(val === state.currentWriteItem.r) {
+                feedback.className = "text-sm font-medium text-emerald-600 h-6";
+                feedback.innerText = "Super, absolut richtig! +15 XP";
+                state.streak++;
+                state.xp += 15;
+                updateStatsUI();
+                setTimeout(loadWriting, 1200);
+            } else {
+                feedback.className = "text-sm font-medium text-rose-600 h-6";
+                feedback.innerText = `Leider falsch. Es war "${state.currentWriteItem.r}".`;
+                state.streak = 0;
+                updateStatsUI();
+            }
+        }
+
+        // Init
+        updateStatsUI();
+        renderCard();
+    </script>
+</body>
+</html>
+
